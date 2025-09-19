@@ -289,17 +289,17 @@ require HELLO_THEME_PATH . '/theme.php';
 HelloTheme\Theme::instance();
 
 // Product/Variation ID => minimum quantity required
-function jg_min_rules(): array
+function ch_min_rules(): array
 {
 	return [
-		711 => 10,  // Cheese Balls (example)
-		708 => 10,   // Coxinha (example)
-		86 => 10,  // Brigadeiro (example)
+		711 => 10,  // Frozen Cheese Balls
+		708 => 10,  // Frozen Sausage Coxinha
+		86 => 10,  // Frozen Chicken Coxinha
 	];
 }
 
 // ---------------- HELPERS ----------------
-function jg_cart_qty_for(int $target_id): int
+function ch_cart_qty_for(int $target_id): int
 {
 	if (!WC()->cart)
 		return 0;
@@ -314,14 +314,13 @@ function jg_cart_qty_for(int $target_id): int
 	return $qty;
 }
 
-// Each item: ['id'=>int,'name'=>string,'qty'=>int,'min'=>int]
-function jg_blocked_items(): array
+function ch_blocked_items(): array
 {
 	if (!WC()->cart)
 		return [];
 	$blocked = [];
-	foreach (jg_min_rules() as $id => $min) {
-		$qty = jg_cart_qty_for((int) $id);
+	foreach (ch_min_rules() as $id => $min) {
+		$qty = ch_cart_qty_for((int) $id);
 		if ($qty > 0 && $qty < (int) $min) {
 			$name = 'This product';
 			foreach (WC()->cart->get_cart() as $ci) {
@@ -338,9 +337,9 @@ function jg_blocked_items(): array
 	return $blocked;
 }
 
-function jg_has_block(): bool
+function ch_has_block(): bool
 {
-	return !empty(jg_blocked_items());
+	return !empty(ch_blocked_items());
 }
 
 // ---------------- CART PROCEED BUTTON (no custom messages here) ----------------
@@ -348,14 +347,12 @@ add_action('init', function () {
 	remove_action('woocommerce_proceed_to_checkout', 'woocommerce_button_proceed_to_checkout', 20);
 
 	add_action('woocommerce_proceed_to_checkout', function () {
-		$blocked = jg_blocked_items();
+		$blocked = ch_blocked_items();
 		if (!empty($blocked)) {
-			// Disabled-looking anchor (Elementor styles still apply)
 			$label = esc_html__('Proceed to checkout', 'woocommerce');
 			echo '<a class="checkout-button button alt disabled" href="#" aria-disabled="true" style="opacity:.5;pointer-events:none;cursor:not-allowed">'
 				. $label
 				. '</a>';
-			// No extra messages here; the standard Woo notices bar will show them.
 		} else {
 			if (function_exists('woocommerce_button_proceed_to_checkout')) {
 				woocommerce_button_proceed_to_checkout();
@@ -364,9 +361,8 @@ add_action('init', function () {
 	}, 20);
 });
 
-// Safety: keep user on Cart if something still tries to fetch checkout URL while blocked
 add_filter('woocommerce_get_checkout_url', function ($url) {
-	if (is_cart() && jg_has_block()) {
+	if (is_cart() && ch_has_block()) {
 		return wc_get_cart_url();
 	}
 	return $url;
@@ -382,11 +378,10 @@ add_action('woocommerce_check_cart_items', function () {
 	if (!(is_cart() || is_checkout()))
 		return;
 
-	$blocked = jg_blocked_items();
+	$blocked = ch_blocked_items();
 	if (empty($blocked))
 		return;
 
-	// Build one combined message (one notice, multiple lines)
 	$lines = [];
 	foreach ($blocked as $it) {
 		$lines[] = sprintf(
